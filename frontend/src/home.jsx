@@ -1,38 +1,110 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { 
   Home, PieChart, Wallet, Briefcase, Navigation, User, Eye, EyeOff, 
-  Mic, MicOff, Plus, Search, 
-  TrendingUp, AlertTriangle, Compass,
-  Moon, Sun, Trash2, ShieldCheck, MessageSquare, Target, KeyRound,
-  Send, CornerDownLeft, CheckCircle2, ChevronRight, Receipt
+  Mic, MicOff, Plus, Search, Crown, CreditCard,
+  TrendingUp, AlertTriangle, Compass, Users,
+  Moon, Sun, Trash2, ShieldCheck, MessageSquare, KeyRound,
+  Send, ChevronRight, Receipt, Edit, Save, X, LogOut, Camera, CheckCircle2, Sparkles,
+  ArrowRightLeft, Zap, Droplet, Flame, UtilityPole
 } from 'lucide-react';
 
 export default function App() {
-  // USER AUTHENTICATION STATE
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // 1. LOCALSTORAGE ORQALI LOGIN VA SAHIFA HOLATINI ESLAB QOLISH
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
+
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('activeTab') || 'home';
+  });
+
   const [userLoginInput, setUserLoginInput] = useState('');
   const [userPasswordInput, setUserPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const [activeTab, setActiveTab] = useState('home'); 
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [totalBalance, setTotalBalance] = useState(12480000);
   const [darkMode, setDarkMode] = useState(true);
 
-  // ADMIN AUTHENTICATION STATE (Parollar yashirilgan)
+  // KARTALAR RAQAMINI KO'RSATISH/YASHIRISH HOLATI (KARTA ID'LARI TO'PLAMI)
+  const [visibleCardNumbers, setVisibleCardNumbers] = useState({});
+
+  const toggleCardNumberVisibility = (cardId) => {
+    setVisibleCardNumbers(prev => ({
+      ...prev,
+      [cardId]: !prev[cardId]
+    }));
+  };
+
+  // ADMIN AUTHENTICATION STATE
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
-  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [adminActiveTab, setAdminActiveTab] = useState('jobs'); // 'jobs' | 'messages'
+  const [adminActiveTab, setAdminActiveTab] = useState('users');
 
-  const [user] = useState({ 
-    name: 'Munisa Abdulhaqova', 
-    phone: '+998 90 123 45 67',
-    email: 'munisa@example.com',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
+  // ADMIN KARTA MA'LUMOTLARI (PREMIUM OBUNA UCHUN)
+  const [adminCardInfo, setAdminCardInfo] = useState(() => {
+    const savedCard = localStorage.getItem('adminCardInfo');
+    return savedCard ? JSON.parse(savedCard) : {
+      cardNumber: '8600 1234 5678 9012',
+      cardHolder: 'ADMINBEK KORPORATSIYASI'
+    };
   });
+  const [editCardNumber, setEditCardNumber] = useState(adminCardInfo.cardNumber);
+  const [editCardHolder, setEditCardHolder] = useState(adminCardInfo.cardHolder);
+
+  // FOYDALANUVCHILAR RO'YXATI (ADMIN PANEDA KO'RINADI)
+  const [allUsers, setAllUsers] = useState(() => {
+    const savedUsers = localStorage.getItem('allUsersList');
+    return savedUsers ? JSON.parse(savedUsers) : [
+      { id: 1, name: 'Munisa Abdulhaqova', phone: '+998 90 123 45 67', isVip: false, joinedDate: '2026-01-10' },
+      { id: 2, name: 'Abdulhaqov_801', phone: '+998 93 987 65 43', isVip: true, joinedDate: '2026-02-15' },
+      { id: 3, name: 'Sardorbek', phone: '+998 91 234 56 78', isVip: false, joinedDate: '2026-03-01' }
+    ];
+  });
+
+  // JOORIY FOYDALANUVCHI MA'LUMOTLARI
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('userData');
+    return savedUser ? JSON.parse(savedUser) : { 
+      id: 2,
+      name: 'Abdulhaqov_801', 
+      phone: '+998 93 987 65 43',
+      email: 'abdulhaqov@example.com',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      isVip: true
+    };
+  });
+
+  // FOYDALANUVCHINING BANK KARTALARI
+  const [userCards, setUserCards] = useState(() => {
+    const savedCards = localStorage.getItem('userCardsList');
+    return savedCards ? JSON.parse(savedCards) : [
+      { id: 1, cardNumber: '8600 1234 5678 4321', cardHolder: 'ABDULHAQOV A', bankName: 'Uzcard', balance: 4500000 },
+      { id: 2, cardNumber: '9860 8765 4321 8852', cardHolder: 'ABDULHAQOV A', bankName: 'Humo', balance: 7980000 }
+    ];
+  });
+  const [newCardNumber, setNewCardNumber] = useState('');
+  const [newCardHolder, setNewCardHolder] = useState('');
+  const [newCardBank, setNewCardBank] = useState('Uzcard');
+
+  // KARTA DANA KARTAGA P2P O'TKAZMA STATE'LARI
+  const [fromCardId, setFromCardId] = useState('');
+  const [toCardNumber, setToCardNumber] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
+
+  // KOMMUNAL TO'LOVLAR STATE'LARI
+  const [utilityType, setUtilityType] = useState('electricity');
+  const [utilityCardId, setUtilityCardId] = useState('');
+  const [utilityAccount, setUtilityAccount] = useState('');
+  const [utilityAmount, setUtilityAmount] = useState('');
+
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editUserData, setEditUserData] = useState({ ...user });
+
+  // FAYL YUKLASH UCHUN REF
+  const fileInputRef = useRef(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [transactions, setTransactions] = useState([
@@ -70,39 +142,28 @@ export default function App() {
     { id: 3, title: 'Grafik Dizayner', company: 'Brand Studio', salary: "5 000 000 - 9 000 000 so'm", location: 'Samarqand', contact: '@brand_hr' }
   ]);
 
-  // MIJOZLAR XABARLARI VA ADMIN JAVOBLARI (CHAT TIZIMI)
+  // MIJOZLAR XABARLARI VA ADMIN JAVOBLARI
   const [userMessages, setUserMessages] = useState([
     { 
       id: 1, 
       sender: 'Sardor', 
       phone: '+998 91 234 56 78', 
-      message: "Menga ishchi kerak, shuni qo'shib bering. Backend dasturchi qidiryapmiz.", 
+      message: "Menga VIP Obuna kerak, kartangizga 50,000 so'm o'tkazdim. Tekshirib bering.", 
       date: 'Bugun, 10:30',
       replies: [
-        { id: 101, text: "Assalomu alaykum! E'loningiz qabul qilindi, tez orada e'lonlar bo'limiga qo'shamiz.", date: 'Bugun, 10:35' }
+        { id: 101, text: "Assalomu alaykum! To'lov tasdiqlandi. Hisobingizga VIP Obuna faollashtirildi!", date: 'Bugun, 10:35' }
       ]
-    },
-    { 
-      id: 2, 
-      sender: 'Munisa Abdulhaqova', 
-      phone: '+998 90 123 45 67', 
-      message: "Ish o'rinlari bo'limi juda qulay ekan, rahmat!", 
-      date: 'Kecha, 18:45',
-      replies: []
     }
   ]);
 
-  // FOYDALANUVCHIDAN XABAR YUBORISH STATE
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [clientMsg, setClientMsg] = useState('');
   const [msgSentSuccess, setMsgSentSuccess] = useState(false);
 
-  // ADMIN JAVOB YAZISH STATE
   const [replyingMsgId, setReplyingMsgId] = useState(null);
   const [adminReplyText, setAdminReplyText] = useState('');
 
-  // ADMIN YANGI ISH QO'SHISH FORMASI
   const [jobForm, setJobForm] = useState({
     title: '',
     company: '',
@@ -111,12 +172,216 @@ export default function App() {
     contact: ''
   });
 
-  // FOYDALANUVCHINI TIZIMGA KIRITISH (USER LOGIN)
+  // LOCALSTORAGE-GA O'ZGARISHLARNI YOZIB BORISH
+  useEffect(() => {
+    localStorage.setItem('isAuthenticated', isAuthenticated);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    localStorage.setItem('userData', JSON.stringify(user));
+  }, [user]);
+
+  useEffect(() => {
+    localStorage.setItem('adminCardInfo', JSON.stringify(adminCardInfo));
+  }, [adminCardInfo]);
+
+  useEffect(() => {
+    localStorage.setItem('allUsersList', JSON.stringify(allUsers));
+  }, [allUsers]);
+
+  useEffect(() => {
+    localStorage.setItem('userCardsList', JSON.stringify(userCards));
+  }, [userCards]);
+
+  // KARTA QO'SHISH FUNKSIYASI
+  const handleAddUserCard = (e) => {
+    e.preventDefault();
+    if (!newCardNumber || !newCardHolder) {
+      alert("Iltimos, karta raqami va karta egasining ismini kiriting!");
+      return;
+    }
+
+    const newCard = {
+      id: Date.now(),
+      cardNumber: newCardNumber,
+      cardHolder: newCardHolder.toUpperCase(),
+      bankName: newCardBank,
+      balance: 0
+    };
+
+    setUserCards(prev => [...prev, newCard]);
+    setNewCardNumber('');
+    setNewCardHolder('');
+    alert("Yangi karta muvaffaqiyatli qo'shildi!");
+  };
+
+  const handleDeleteUserCard = (id) => {
+    if (window.confirm("Rostdan ham ushbu kartani o'chirmoqchimisiz?")) {
+      setUserCards(prev => prev.filter(card => card.id !== id));
+    }
+  };
+
+  // KARTADAN KARTAGA PUL O'TKAZMA FUNKSIYASI
+  const handleCardTransfer = (e) => {
+    e.preventDefault();
+
+    const amount = Number(String(transferAmount).replace(/\s/g, ''));
+    const cleanToCard = String(toCardNumber).replace(/\D/g, '');
+
+    // 1. Ma'lumotlarni tekshirish
+    if (!fromCardId || cleanToCard.length !== 16 || !Number.isFinite(amount) || amount <= 0) {
+      alert("Karta raqami 16 xonali bo'lishi va summa to'g'ri kiritilishi kerak!");
+      return;
+    }
+
+    const sourceCard = userCards.find(c => c.id === Number(fromCardId));
+    if (!sourceCard) {
+      alert("Tanlangan karta topilmadi!");
+      return;
+    }
+
+    // O'z kartalarimizdan biriga o'tkazayotgan bo'lsak, shu kartaning balansini oshiramiz.
+    const receiverCard = userCards.find(
+      c => String(c.cardNumber).replace(/\D/g, '') === cleanToCard
+    );
+
+    // Bir xil kartaga pul yuborishni taqiqlaymiz.
+    if (receiverCard && receiverCard.id === sourceCard.id) {
+      alert("Pulni o'sha kartaning o'ziga o'tkazib bo'lmaydi!");
+      return;
+    }
+
+    if (sourceCard.balance < amount) {
+      alert("Tanlangan kartada yetarli mablag' mavjud emas!");
+      return;
+    }
+
+    // 2. Yuboruvchi kartadan ayiramiz va agar qabul qiluvchi bizning kartamiz bo'lsa,
+    // shu kartaga qo'shamiz.
+    if (receiverCard) {
+      setUserCards(prev => prev.map(card => {
+        if (card.id === sourceCard.id) {
+          return { ...card, balance: card.balance - amount };
+        }
+        if (card.id === receiverCard.id) {
+          return { ...card, balance: card.balance + amount };
+        }
+        return card;
+      }));
+
+      // Bir foydalanuvchining o'z kartalari orasidagi o'tkazmada umumiy balans o'zgarmaydi.
+      setTotalBalance(prev => prev);
+    } else {
+      // 3. Tashqi karta bo'lsa, uning demo balansini localStorage'da saqlaymiz.
+      // Haqiqiy bank kartasiga pul yuborish uchun Django/backend + bank API kerak bo'ladi.
+      const savedBalances = JSON.parse(localStorage.getItem('externalCardBalances') || '{}');
+      savedBalances[cleanToCard] = (Number(savedBalances[cleanToCard]) || 0) + amount;
+      localStorage.setItem('externalCardBalances', JSON.stringify(savedBalances));
+
+      setUserCards(prev => prev.map(card =>
+        card.id === sourceCard.id
+          ? { ...card, balance: card.balance - amount }
+          : card
+      ));
+
+      setTotalBalance(prev => prev - amount);
+    }
+
+    // 4. Transaction history'ga yozamiz.
+    const maskedCard = `**** **** **** ${cleanToCard.slice(-4)}`;
+    const newTx = {
+      id: Date.now(),
+      title: `Kartaga o'tkazma: ${maskedCard}`,
+      amount,
+      category: "Pul o'tkazmasi",
+      date: 'Hozir'
+    };
+    setTransactions(prev => [newTx, ...prev]);
+
+    // 5. Formani tozalaymiz.
+    setToCardNumber('');
+    setTransferAmount('');
+    setFromCardId('');
+
+    alert(`${amount.toLocaleString()} so'm muvaffaqiyatli o'tkazildi!`);
+  };
+
+  // KOMMUNAL TO'LOV FUNKSIYASI (GAZ, SVET, SUV, TOK)
+  const handleUtilityPayment = (e) => {
+    e.preventDefault();
+    const amount = parseInt(utilityAmount);
+    if (!utilityCardId || !utilityAccount || !amount || amount <= 0) {
+      alert("Iltimos, barcha ma'lumotlarni to'liq kiriting!");
+      return;
+    }
+
+    const sourceCard = userCards.find(c => c.id === parseInt(utilityCardId));
+    if (!sourceCard) {
+      alert("Tanlangan karta topilmadi!");
+      return;
+    }
+
+    if (sourceCard.balance < amount) {
+      alert("Tanlangan kartada yetarli mablag' mavjud emas!");
+      return;
+    }
+
+    setUserCards(prev => prev.map(c => {
+      if (c.id === sourceCard.id) {
+        return { ...c, balance: c.balance - amount };
+      }
+      return c;
+    }));
+
+    setTotalBalance(prev => prev - amount);
+
+    const names = {
+      electricity: 'Elektr energiyasi (Svet)',
+      gas: 'Tabiiy gaz',
+      water: 'Ichimlik suvi',
+      garbage: "Chiqindi (To'lov)"
+    };
+
+    const newTx = {
+      id: Date.now(),
+      title: `${names[utilityType] || 'Kommunal'} - Hisob: ${utilityAccount}`,
+      amount: amount,
+      category: 'Kommunal to\'lov',
+      date: 'Hozir'
+    };
+    setTransactions(prev => [newTx, ...prev]);
+
+    setUtilityAccount('');
+    setUtilityAmount('');
+    alert("Kommunal to'lov muvaffaqiyatli amalga oshirildi!");
+  };
+
+  // FOYDALANUVCHINI TIZIMGA KIRITISH
   const handleUserLogin = (e) => {
     e.preventDefault();
     if (userLoginInput.trim() !== '' && userPasswordInput.trim() !== '') {
       setIsAuthenticated(true);
       setAuthError('');
+
+      const exists = allUsers.find(u => u.name === userLoginInput || u.phone === userLoginInput);
+      if (!exists) {
+        const newUserObj = {
+          id: Date.now(),
+          name: userLoginInput,
+          phone: '+998 90 ' + Math.floor(1000000 + Math.random() * 9000000),
+          isVip: false,
+          joinedDate: new Date().toISOString().split('T')[0]
+        };
+        setAllUsers(prev => [...prev, newUserObj]);
+        setUser({ ...user, ...newUserObj });
+      } else {
+        setUser({ ...user, ...exists });
+      }
+
       setUserLoginInput('');
       setUserPasswordInput('');
       setActiveTab('home');
@@ -135,6 +400,51 @@ export default function App() {
     if (window.confirm("Rostdan ham hisobingizdan chiqmoqchimisiz?")) {
       setIsAuthenticated(false);
       setActiveTab('home');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('activeTab');
+    }
+  };
+
+  // ADMIN KARTA MA'LUMOTLARINI YANGILASH
+  const handleSaveAdminCard = (e) => {
+    e.preventDefault();
+    setAdminCardInfo({
+      cardNumber: editCardNumber,
+      cardHolder: editCardHolder
+    });
+    alert("Karta ma'lumotlari muvaffaqiyatli saqlandi!");
+  };
+
+  // ADMIN FOYDALANUVCHINING VIP STATUSINI O'ZGARTIRISHI
+  const toggleUserVipStatus = (userId) => {
+    setAllUsers(prev => prev.map(u => {
+      if (u.id === userId) {
+        const updatedVip = !u.isVip;
+        if (user.id === userId) {
+          setUser(prevUser => ({ ...prevUser, isVip: updatedVip }));
+        }
+        return { ...u, isVip: updatedVip };
+      }
+      return u;
+    }));
+  };
+
+  // PROFILNI SAQLASH
+  const handleSaveProfile = (e) => {
+    e.preventDefault();
+    setUser(editUserData);
+    setIsEditingProfile(false);
+  };
+
+  // GALEREYADAN RASM YUKLASH
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditUserData(prev => ({ ...prev, avatar: reader.result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -242,7 +552,6 @@ export default function App() {
     }
   }, [activeTab, isAuthenticated]);
 
-  // ADMIN LOGIN TEKSHIRISH
   const handleAdminLogin = (e) => {
     e.preventDefault();
     if (adminUsername === 'adminjon' && adminPassword === 'adminaka') {
@@ -255,7 +564,6 @@ export default function App() {
     }
   };
 
-  // MIJOZ TARAFI: XABAR YUBORISH
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!clientName || !clientMsg) return;
@@ -277,7 +585,6 @@ export default function App() {
     setTimeout(() => setMsgSentSuccess(false), 3000);
   };
 
-  // ADMIN TARAFI: FOYDALANUVCHIGA JAVOB YAZISH
   const handleSendAdminReply = (msgId) => {
     if (!adminReplyText.trim()) return;
 
@@ -301,7 +608,6 @@ export default function App() {
     setReplyingMsgId(null);
   };
 
-  // JAMG'ARMA: YANGI MAQSAD QO'SHISH
   const handleCreateGoal = (e) => {
     e.preventDefault();
     if (!goalName || !goalTarget) return;
@@ -318,7 +624,6 @@ export default function App() {
     setGoalTarget('');
   };
 
-  // JAMG'ARMA: PUL QO'SHISH
   const handleAddMoneyToGoal = (id) => {
     const amount = parseInt(addSavingAmount);
     if (!amount || amount <= 0) return;
@@ -340,7 +645,6 @@ export default function App() {
     setAddSavingAmount('');
   };
 
-  // JAMG'ARMA: MAQSADNI O'CHIRISH
   const handleDeleteGoal = (id) => {
     setSavingsGoals(prev => prev.filter(g => g.id !== id));
   };
@@ -386,7 +690,11 @@ export default function App() {
     setNewAmount('');
   };
 
-  // ADMIN: Yangi ish qo'shish
+  const handleDeleteExpense = (id, amount) => {
+    setTransactions(prev => prev.filter(tx => tx.id !== id));
+    setTotalBalance(prev => prev + amount);
+  };
+
   const handleAddJob = (e) => {
     e.preventDefault();
     if (!jobForm.title || !jobForm.company || !jobForm.salary) {
@@ -408,14 +716,12 @@ export default function App() {
     alert("Yangi ish e'loni muvaffaqiyatli qo'shildi!");
   };
 
-  // ADMIN: Ish e'lonini o'chirish
   const handleDeleteJob = (id) => {
     if (window.confirm("Rostdan ham ushbu e'lonni o'chirmoqchimisiz?")) {
       setJobs(prev => prev.filter(job => job.id !== id));
     }
   };
 
-  // ADMIN: Xabarni o'chirish
   const handleDeleteMessage = (id) => {
     setUserMessages(prev => prev.filter(m => m.id !== id));
   };
@@ -429,9 +735,29 @@ export default function App() {
     r.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const formatCardNumber = (cardNumber, isVisible) => {
+    if (isVisible) {
+      return cardNumber;
+    }
+    const cleanNum = cardNumber.replace(/\s+/g, '');
+    if (cleanNum.length >= 16) {
+      return `${cleanNum.slice(0, 4)} **** **** ${cleanNum.slice(12)}`;
+    }
+    return '**** **** **** ****';
+  };
+
   return (
     <div className={`flex justify-center min-h-screen ${darkMode ? 'bg-slate-950' : 'bg-slate-200'}`}>
       <div className={`w-full max-w-[410px] min-h-screen flex flex-col relative pb-20 font-sans shadow-2xl overflow-hidden ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+
+        {/* YASHIRIN FAYL INPUTI */}
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleImageChange} 
+          accept="image/*" 
+          className="hidden" 
+        />
 
         {/* 1. FOYDALANUVCHINING LOGIN SAHIFASI */}
         {!isAuthenticated ? (
@@ -514,7 +840,7 @@ export default function App() {
           </div>
         ) : (
           /* 2. TIZIMGA KIRILGAN KO'RINISH */
-          <>
+          <div className="flex-1 flex flex-col">
             {activeTab === 'home' && (
               <div className="absolute right-4 bottom-24 flex flex-col gap-3 z-50">
                 <button 
@@ -546,9 +872,13 @@ export default function App() {
                 <span className={`text-xs font-bold capitalize ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
                   {activeTab === 'expenses' && 'Xarajatlar'}
                   {activeTab === 'analytics' && 'Xarajatlar tahlili'}
+                  {activeTab === 'cards' && 'Mening kartalarim'}
+                  {activeTab === 'transfer' && "Kartadan kartaga o'tkazma"}
+                  {activeTab === 'utilities' && "Kommunal to'lovlar"}
                   {activeTab === 'gps' && 'Aniq GPS & Oshxonalar'}
                   {activeTab === 'savings' && "Jamg'arish Maqsadi"}
                   {activeTab === 'jobs' && "Ko'proq pul beradigan ishlar"}
+                  {activeTab === 'premium' && 'Premium Obuna (VIP)'}
                   {activeTab === 'contact' && 'Admin bilan aloqa & Chat'}
                   {activeTab === 'admin' && 'Admin Panel'}
                   {activeTab === 'profile' && 'Shaxsiy profil'}
@@ -585,11 +915,25 @@ export default function App() {
                       >
                         <ShieldCheck size={18} />
                       </button>
-                      <img onClick={() => setActiveTab('profile')} src={user.avatar} className="w-8 h-8 rounded-full border-2 border-white/40 cursor-pointer object-cover" alt="avatar" />
+                      <div className="relative cursor-pointer" onClick={() => setActiveTab('profile')}>
+                        <img src={user.avatar} className="w-8 h-8 rounded-full border-2 border-white/40 object-cover" alt="avatar" />
+                        {user.isVip && (
+                          <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-900 rounded-full p-0.5 border border-white">
+                            <Crown size={10} className="fill-slate-900" />
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <h2 className="text-lg font-bold">Salom, {user.name.split(' ')[0]}!</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold">Salom, {user.name}!</h2>
+                    {user.isVip && (
+                      <span className="bg-gradient-to-r from-amber-400 to-amber-200 text-slate-900 font-black text-[9px] px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-md">
+                        <Crown size={10} className="fill-slate-900" /> VIP
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-blue-100/80 mt-0.5">Bugun ham o&apos;z maqsading sari bir qadam yaqinsan!</p>
 
                   <div className={`mt-4 rounded-2xl p-4 shadow-2xl border ${darkMode ? 'bg-slate-800/90 border-slate-700/60 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
@@ -605,111 +949,505 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="px-5 mt-5">
-                  <div className="grid grid-cols-4 gap-3">
-                    {[
-                      { title: 'Xarajatlar', icon: Receipt, color: 'bg-rose-500/10 text-rose-500', tab: 'expenses' },
-                      { title: 'Tahlil', icon: PieChart, color: 'bg-blue-500/10 text-blue-500', tab: 'analytics' },
-                      { title: 'Yaqin Oshxona', icon: Navigation, color: 'bg-amber-500/10 text-amber-500', tab: 'gps' },
-                      { title: "Jamg'arma", icon: Wallet, color: 'bg-indigo-500/10 text-indigo-500', tab: 'savings' }
-                    ].map((item, idx) => (
-                      <button key={idx} onClick={() => setActiveTab(item.tab)} className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition active:scale-95 ${darkMode ? 'bg-slate-800/60 border-slate-700/50 hover:bg-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-                        <div className={`p-2.5 rounded-xl ${item.color}`}>
-                          <item.icon size={18} />
-                        </div>
-                        <span className={`text-[10px] font-semibold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{item.title}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="px-5 mt-5 space-y-3">
-                  <h3 className={`text-xs font-bold ${darkMode ? 'text-slate-300' : 'text-slate-800'}`}>Tezkor amallar</h3>
+                {/* ASOSIY MENYU BO'LIMLARI */}
+                <div className="p-4 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => setActiveTab('expenses')} className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition ${darkMode ? 'bg-slate-800/60 border-slate-700/50' : 'bg-white border-slate-100 shadow-sm'}`}>
-                      <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500"><Receipt size={16} /></div>
-                      <span className={`text-[11px] font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>Xarajatlarim</span>
-                    </button>
-                    <button onClick={() => setActiveTab('analytics')} className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition ${darkMode ? 'bg-slate-800/60 border-slate-700/50' : 'bg-white border-slate-100 shadow-sm'}`}>
-                      <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500"><PieChart size={16} /></div>
-                      <span className={`text-[11px] font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>Xarajat tahlili</span>
-                    </button>
-                    <button onClick={() => setActiveTab('gps')} className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition ${darkMode ? 'bg-slate-800/60 border-slate-700/50' : 'bg-white border-slate-100 shadow-sm'}`}>
-                      <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500"><Compass size={16} /></div>
-                      <span className={`text-[11px] font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>Aniq GPS Joylashuv</span>
-                    </button>
-                    <button onClick={() => setActiveTab('jobs')} className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition ${darkMode ? 'bg-slate-800/60 border-slate-700/50' : 'bg-white border-slate-100 shadow-sm'}`}>
-                      <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500"><Briefcase size={16} /></div>
+                    <button 
+                      onClick={() => setActiveTab('cards')} 
+                      className={`p-4 rounded-2xl border text-left transition active:scale-95 flex flex-col justify-between ${
+                        darkMode ? 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50 shadow-sm'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center mb-3">
+                        <CreditCard size={20} />
+                      </div>
                       <div>
-                        <span className={`text-[11px] font-bold block ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>Ish topish</span>
-                        <span className="text-[9px] text-emerald-400 font-medium">{jobs.length} ta vakansiya</span>
+                        <h3 className="text-xs font-bold">Mening kartalarim</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{userCards.length} ta karta ulangan</p>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setActiveTab('transfer')} 
+                      className={`p-4 rounded-2xl border text-left transition active:scale-95 flex flex-col justify-between ${
+                        darkMode ? 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50 shadow-sm'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-3">
+                        <ArrowRightLeft size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold">Kartadan kartaga</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Tezkor P2P o'tkazma</p>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setActiveTab('utilities')} 
+                      className={`p-4 rounded-2xl border text-left transition active:scale-95 flex flex-col justify-between ${
+                        darkMode ? 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50 shadow-sm'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3">
+                        <Zap size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold">Kommunal to'lovlar</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Gaz, svet, suv, tok</p>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setActiveTab('expenses')} 
+                      className={`p-4 rounded-2xl border text-left transition active:scale-95 flex flex-col justify-between ${
+                        darkMode ? 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50 shadow-sm'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-3">
+                        <Wallet size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold">Xarajatlar</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Kiritish va kuzatish</p>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setActiveTab('analytics')} 
+                      className={`p-4 rounded-2xl border text-left transition active:scale-95 flex flex-col justify-between ${
+                        darkMode ? 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50 shadow-sm'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3">
+                        <PieChart size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold">Tahlil</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Statistika va diagramma</p>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setActiveTab('savings')} 
+                      className={`p-4 rounded-2xl border text-left transition active:scale-95 flex flex-col justify-between ${
+                        darkMode ? 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50 shadow-sm'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-500 flex items-center justify-center mb-3">
+                        <Sparkles size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold">Jamg'arish</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Maqsadlar va fond</p>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setActiveTab('jobs')} 
+                      className={`p-4 rounded-2xl border text-left transition active:scale-95 flex flex-col justify-between col-span-2 ${
+                        darkMode ? 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50 shadow-sm'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3">
+                          <Briefcase size={20} />
+                        </div>
+                        <span className="text-[9px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold">Daromad</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold">Ko'proq pul beradigan ishlar</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Yuqori maoshli bo'sh ish o'rinlari ro'yxati</p>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setActiveTab('gps')} 
+                      className={`p-4 rounded-2xl border text-left transition active:scale-95 flex flex-col justify-between col-span-2 ${
+                        darkMode ? 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50 shadow-sm'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center mb-3">
+                          <Navigation size={20} />
+                        </div>
+                        <span className="text-[9px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded-full font-bold">GPS Live</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold">Aniq GPS & Yaqin Oshxonalar</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Atrofingizdagi eng yaqin oshxonalarni topish</p>
                       </div>
                     </button>
                   </div>
 
+                  {/* PREMIUM BANNER */}
+                  <div onClick={() => setActiveTab('premium')} className="cursor-pointer bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 p-4 rounded-2xl text-slate-950 flex items-center justify-between shadow-lg">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider">
+                        <Crown size={16} className="fill-slate-950" /> Premium VIP Obuna
+                      </div>
+                      <p className="text-[10px] font-medium opacity-90">Barcha imkoniyatlarni va eksklyuziv funksiyalarni oching</p>
+                    </div>
+                    <ChevronRight size={20} className="opacity-80" />
+                  </div>
+
+                  {/* ADMIN BILAN ALOQA BUTTON */}
                   <button 
-                    onClick={() => setActiveTab('contact')} 
-                    className={`w-full flex items-center justify-between p-3.5 rounded-2xl border text-left transition ${darkMode ? 'bg-indigo-900/30 border-indigo-700/50 text-indigo-200' : 'bg-indigo-50 border-indigo-100 text-indigo-900'}`}
+                    onClick={() => setActiveTab('contact')}
+                    className={`w-full p-4 rounded-2xl border flex items-center justify-between transition ${
+                      darkMode ? 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400">
-                        <MessageSquare size={16} />
+                      <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+                        <MessageSquare size={18} />
                       </div>
-                      <div>
-                        <span className="text-xs font-bold block">Admin bilan bog&apos;lanish</span>
-                        <span className="text-[10px] text-indigo-400/80">Xabar yuborish va javoblarni olish</span>
+                      <div className="text-left">
+                        <h4 className="text-xs font-bold">Admin bilan aloqa</h4>
+                        <p className="text-[10px] text-slate-400">Savol va takliflar uchun chat</p>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-indigo-400" />
+                    <ChevronRight size={18} className="text-slate-400" />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* XARAGATLAR BO'LIMI */}
+            {/* KARTADAN KARTAGA O'TKAZMA SAHIFASI */}
+            {activeTab === 'transfer' && (
+              <div className="p-4 space-y-4">
+                <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <ArrowRightLeft className="text-indigo-500" size={20} />
+                    <h3 className="text-xs font-bold">Kartadan kartaga pul o'tkazish (P2P)</h3>
+                  </div>
+
+                  <form onSubmit={handleCardTransfer} className="space-y-4">
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">Qaysi kartadan yechilsin?</label>
+                      <select
+                        value={fromCardId}
+                        onChange={(e) => setFromCardId(e.target.value)}
+                        className={`w-full px-3 py-2.5 rounded-xl border text-xs outline-none ${
+                          darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <option value="">Kartani tanlang</option>
+                        {userCards.map(card => (
+                          <option key={card.id} value={card.id}>
+                            {card.bankName} - {card.cardNumber.slice(-4)} ({card.balance.toLocaleString()} so'm)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">Qabul qiluvchi karta raqami</label>
+                      <input 
+                        type="text"
+                        placeholder="8600 **** **** ****"
+                        value={toCardNumber}
+                        onChange={(e) => setToCardNumber(e.target.value)}
+                        className={`w-full px-3 py-2.5 rounded-xl border text-xs outline-none ${
+                          darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">O'tkazma summasi (so'm)</label>
+                      <input 
+                        type="number"
+                        placeholder="Masalan: 50000"
+                        value={transferAmount}
+                        onChange={(e) => setTransferAmount(e.target.value)}
+                        className={`w-full px-3 py-2.5 rounded-xl border text-xs outline-none ${
+                          darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <button 
+                      type="submit"
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-3 rounded-xl transition active:scale-95 shadow-md flex items-center justify-center gap-2"
+                    >
+                      <Send size={15} /> Pulni o'tkazish
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* KOMMUNAL TO'LOVLAR SAHIFASI */}
+            {activeTab === 'utilities' && (
+              <div className="p-4 space-y-4">
+                <div className={`p-5 rounded-2xl border space-y-4 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="text-amber-500" size={20} />
+                    <h3 className="text-xs font-bold">Kommunal to'lovlar (Gaz, Svet, Suv, Tok)</h3>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2 mb-2">
+                    <button 
+                      type="button"
+                      onClick={() => setUtilityType('electricity')}
+                      className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition ${
+                        utilityType === 'electricity' 
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-500 font-bold' 
+                          : darkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      <Zap size={18} />
+                      <span className="text-[9px]">Svet</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => setUtilityType('gas')}
+                      className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition ${
+                        utilityType === 'gas' 
+                          ? 'bg-orange-500/20 border-orange-500 text-orange-500 font-bold' 
+                          : darkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      <Flame size={18} />
+                      <span className="text-[9px]">Gaz</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => setUtilityType('water')}
+                      className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition ${
+                        utilityType === 'water' 
+                          ? 'bg-cyan-500/20 border-cyan-500 text-cyan-500 font-bold' 
+                          : darkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      <Droplet size={18} />
+                      <span className="text-[9px]">Suv</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => setUtilityType('garbage')}
+                      className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition ${
+                        utilityType === 'garbage' 
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-500 font-bold' 
+                          : darkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      <Trash2 size={18} />
+                      <span className="text-[9px]">Chiqindi</span>
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleUtilityPayment} className="space-y-4">
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">To'lov kartasi</label>
+                      <select
+                        value={utilityCardId}
+                        onChange={(e) => setUtilityCardId(e.target.value)}
+                        className={`w-full px-3 py-2.5 rounded-xl border text-xs outline-none ${
+                          darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <option value="">Kartani tanlang</option>
+                        {userCards.map(card => (
+                          <option key={card.id} value={card.id}>
+                            {card.bankName} - {card.cardNumber.slice(-4)} ({card.balance.toLocaleString()} so'm)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">Shaxsiy hisob (Abonent) raqami</label>
+                      <input 
+                        type="text"
+                        placeholder="Masalan: 12345678"
+                        value={utilityAccount}
+                        onChange={(e) => setUtilityAccount(e.target.value)}
+                        className={`w-full px-3 py-2.5 rounded-xl border text-xs outline-none ${
+                          darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">To'lov summasi (so'm)</label>
+                      <input 
+                        type="number"
+                        placeholder="Masalan: 100000"
+                        value={utilityAmount}
+                        onChange={(e) => setUtilityAmount(e.target.value)}
+                        className={`w-full px-3 py-2.5 rounded-xl border text-xs outline-none ${
+                          darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <button 
+                      type="submit"
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-3 rounded-xl transition active:scale-95 shadow-md flex items-center justify-center gap-2"
+                    >
+                      <Receipt size={15} /> To'lovni amalga oshirish
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MENING KARTALARIM SAHIFASI */}
+            {activeTab === 'cards' && (
+              <div className="p-4 space-y-4">
+                <div className="space-y-3">
+                  {userCards.map(card => (
+                    <div 
+                      key={card.id} 
+                      className="p-5 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-xl relative overflow-hidden border border-slate-700/60"
+                    >
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <p className="text-[10px] text-slate-400 font-medium">{card.bankName}</p>
+                          <p className="text-lg font-black tracking-widest mt-1">
+                            {formatCardNumber(card.cardNumber, visibleCardNumbers[card.id])}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => toggleCardNumberVisibility(card.id)}
+                          className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
+                        >
+                          {visibleCardNumbers[card.id] ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <p className="text-[9px] text-slate-400 uppercase">Karta egasi</p>
+                          <p className="text-xs font-bold">{card.cardHolder}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[9px] text-slate-400 uppercase">Balans</p>
+                          <p className="text-xs font-black text-emerald-400">{card.balance.toLocaleString()} so'm</p>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => handleDeleteUserCard(card.id)}
+                        className="absolute top-3 right-12 text-rose-400 hover:text-rose-300 p-1"
+                        title="Kartani o'chirish"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* YANGI KARTA QO'SHISH FORMALARI */}
+                <form onSubmit={handleAddUserCard} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <h4 className="text-xs font-bold">Yangi karta qo'shish</h4>
+                  
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-medium mb-1 block">Karta turi</label>
+                    <select 
+                      value={newCardBank}
+                      onChange={(e) => setNewCardBank(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${
+                        darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="Uzcard">Uzcard</option>
+                      <option value="Humo">Humo</option>
+                      <option value="Visa">Visa</option>
+                      <option value="Mastercard">Mastercard</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-medium mb-1 block">Karta raqami</label>
+                    <input 
+                      type="text" 
+                      placeholder="8600 0000 0000 0000" 
+                      value={newCardNumber}
+                      onChange={(e) => setNewCardNumber(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${
+                        darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-medium mb-1 block">Karta egasi ismi</label>
+                    <input 
+                      type="text" 
+                      placeholder="FIRSTNAME LASTNAME" 
+                      value={newCardHolder}
+                      onChange={(e) => setNewCardHolder(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${
+                        darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <button 
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl transition active:scale-95 shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    <Plus size={16} /> Karta qo'shish
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* XARAJTALR SAHIFASI */}
             {activeTab === 'expenses' && (
-              <div className="p-5 space-y-4">
-                <form onSubmit={handleAddExpense} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/60 border-slate-700/60' : 'bg-white border-slate-100 shadow-sm'}`}>
-                  <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>Yangi xarajat qo&apos;shish</h4>
-                  <input 
-                    type="text" 
-                    placeholder="Xarajat nomi (masalan: Tushlik)" 
-                    value={newTitle} 
-                    onChange={(e) => setNewTitle(e.target.value)} 
-                    className={`w-full border p-2.5 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                  />
-                  <div className="flex gap-2">
+              <div className="p-4 space-y-4">
+                <form onSubmit={handleAddExpense} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <h4 className="text-xs font-bold">Yangi xarajat kiritish</h4>
+                  <div className="space-y-2">
+                    <input 
+                      type="text" 
+                      placeholder="Xarajat nomi (masalan: Tushlik)" 
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}
+                    />
                     <input 
                       type="number" 
-                      placeholder="Summa (so'm)" 
-                      value={newAmount} 
-                      onChange={(e) => setNewAmount(e.target.value)} 
-                      className={`w-1/2 border p-2.5 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                      placeholder="Summasi (so'm)" 
+                      value={newAmount}
+                      onChange={(e) => setNewAmount(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}
                     />
                     <select 
-                      value={newCategory} 
-                      onChange={(e) => setNewCategory(e.target.value)} 
-                      className={`w-1/2 border p-2.5 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}
                     >
                       <option value="Oziq-ovqat">Oziq-ovqat</option>
                       <option value="Transport">Transport</option>
                       <option value="Kiyim-kechak">Kiyim-kechak</option>
-                      <option value="Xizmatlar">Xizmatlar</option>
+                      <option value="Ko'ngilochar">Ko'ngilochar</option>
+                      <option value="Boshqa">Boshqa</option>
                     </select>
+                    <button type="submit" className="w-full bg-blue-600 text-white py-2.5 rounded-xl text-xs font-bold shadow-md hover:bg-blue-700 transition">
+                      Qo'shish
+                    </button>
                   </div>
-                  <button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition">Qo&apos;shish</button>
                 </form>
 
                 <div className="space-y-2">
-                  <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-300' : 'text-slate-800'}`}>Tarix</h4>
-                  {transactions.map((tx) => (
-                    <div key={tx.id} className={`p-3 rounded-2xl border flex items-center justify-between ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                  <h4 className="text-xs font-bold px-1">So'nggi xarajatlar</h4>
+                  {transactions.map(tx => (
+                    <div key={tx.id} className={`p-3 rounded-xl border flex items-center justify-between ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100'}`}>
                       <div>
-                        <div className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{tx.title}</div>
-                        <div className="text-[10px] text-slate-400">{tx.category} • {tx.date}</div>
+                        <h5 className="text-xs font-bold">{tx.title}</h5>
+                        <p className="text-[10px] text-slate-400">{tx.category} • {tx.date}</p>
                       </div>
-                      <div className="text-xs font-extrabold text-rose-500">
-                        -{tx.amount.toLocaleString()} so&apos;m
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-black text-rose-500">-{tx.amount.toLocaleString()} so'm</span>
+                        <button onClick={() => handleDeleteExpense(tx.id, tx.amount)} className="text-slate-500 hover:text-rose-500">
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -717,150 +1455,131 @@ export default function App() {
               </div>
             )}
 
-            {/* TAHLIL (ANALYTICS) BO'LIMI */}
+            {/* TAHLIL SAHIFASI */}
             {activeTab === 'analytics' && (
-              <div className="p-5 space-y-4">
-                <div className={`p-4 rounded-2xl border ${darkMode ? 'bg-slate-800/60 border-slate-700/60' : 'bg-white border-slate-100 shadow-sm'}`}>
-                  <h4 className={`text-xs font-bold mb-3 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>Kategoriyalar bo&apos;yicha</h4>
+              <div className="p-4 space-y-4">
+                <div className={`p-5 rounded-2xl border ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <h4 className="text-xs font-bold mb-4">Xarajatlar strukturasi</h4>
                   <div className="space-y-3">
-                    {[
-                      { cat: 'Oziq-ovqat', pct: '45%', color: 'bg-rose-500' },
-                      { cat: 'Kiyim-kechak', pct: '35%', color: 'bg-indigo-500' },
-                      { cat: 'Transport', pct: '20%', color: 'bg-amber-500' }
-                    ].map((item, i) => (
-                      <div key={i} className="space-y-1">
-                        <div className="flex justify-between text-[11px] font-medium">
-                          <span className={darkMode ? 'text-slate-300' : 'text-slate-700'}>{item.cat}</span>
-                          <span className="text-slate-400">{item.pct}</span>
-                        </div>
-                        <div className="w-full h-2 bg-slate-700/20 rounded-full overflow-hidden">
-                          <div className={`h-full ${item.color}`} style={{ width: item.pct }}></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* GPS & OSHXONALAR BO'LIMI */}
-            {activeTab === 'gps' && (
-              <div className="p-5 space-y-4">
-                <div className={`p-4 rounded-2xl border ${darkMode ? 'bg-slate-800/60 border-slate-700/60' : 'bg-white border-slate-100 shadow-sm'}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl">
-                      <Navigation size={20} />
-                    </div>
                     <div>
-                      <div className="text-xs font-bold">{addressName || "Joylashuv aniqlanmoqda..."}</div>
-                      {accuracy && <div className="text-[10px] text-slate-400">Aniqlik darajasi: ~{accuracy} metr</div>}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={fetchNearbyPlaces}
-                    disabled={gpsLoading}
-                    className="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 rounded-xl transition"
-                  >
-                    {gpsLoading ? "Yangilanmoqda..." : "Joylashuvni yangilash"}
-                  </button>
-                </div>
-
-                {gpsError && (
-                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-xs flex items-center gap-2">
-                    <AlertTriangle size={16} />
-                    <span>{gpsError}</span>
-                  </div>
-                )}
-
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  <Search size={16} className="text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Oshxona yoki kafe qidirish..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent text-xs outline-none w-full"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-300' : 'text-slate-800'}`}>Yaqin atrofdagi oshxonalar ({filteredRestaurants.length})</h4>
-                  {filteredRestaurants.map((res) => (
-                    <div key={res.id} className={`p-3 rounded-2xl border flex items-center justify-between ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-                      <div>
-                        <div className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{res.name}</div>
-                        <div className="text-[10px] text-slate-400 capitalize">{res.type}</div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span>Oziq-ovqat</span>
+                        <span className="font-bold">45%</span>
                       </div>
-                      <div className="text-xs font-extrabold text-amber-500">
-                        {res.distText}
+                      <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-[45%] h-full bg-blue-500"></div>
                       </div>
                     </div>
-                  ))}
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span>Kiyim-kechak</span>
+                        <span className="font-bold">30%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-[30%] h-full bg-purple-500"></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span>Transport</span>
+                        <span className="font-bold">15%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-[15%] h-full bg-amber-500"></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span>Boshqa</span>
+                        <span className="font-bold">10%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-[10%] h-full bg-rose-500"></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* JAMG'ARMA BO'LIMI */}
+            {/* JAMG'ARISH SAHIFASI */}
             {activeTab === 'savings' && (
-              <div className="p-5 space-y-4">
-                <form onSubmit={handleCreateGoal} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/60 border-slate-700/60' : 'bg-white border-slate-100 shadow-sm'}`}>
-                  <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>Yangi maqsad yaratish</h4>
+              <div className="p-4 space-y-4">
+                <form onSubmit={handleCreateGoal} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <h4 className="text-xs font-bold">Yangi jamg'arish maqsadi</h4>
                   <input 
                     type="text" 
-                    placeholder="Maqsad nomi (masalan: Noutbuk)" 
-                    value={goalName} 
-                    onChange={(e) => setGoalName(e.target.value)} 
-                    className={`w-full border p-2.5 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                    placeholder="Maqsad nomi (masalan: Mashina)" 
+                    value={goalName}
+                    onChange={(e) => setGoalName(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}
                   />
                   <input 
                     type="number" 
                     placeholder="Kerakli summa (so'm)" 
-                    value={goalTarget} 
-                    onChange={(e) => setGoalTarget(e.target.value)} 
-                    className={`w-full border p-2.5 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                    value={goalTarget}
+                    onChange={(e) => setGoalTarget(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}
                   />
-                  <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition">Maqsadni Saqlash</button>
+                  <button type="submit" className="w-full bg-teal-600 text-white py-2.5 rounded-xl text-xs font-bold shadow-md hover:bg-teal-700 transition">
+                    Maqsadni yaratish
+                  </button>
                 </form>
 
                 <div className="space-y-3">
-                  <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-300' : 'text-slate-800'}`}>Mening maqsadlarim</h4>
-                  {savingsGoals.map((goal) => {
+                  {savingsGoals.map(goal => {
                     const percent = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
                     return (
-                      <div key={goal.id} className={`p-4 rounded-2xl border space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                      <div key={goal.id} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/50 border-slate-700/60' : 'bg-white border-slate-200'}`}>
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{goal.name}</div>
-                            <div className="text-[10px] text-slate-400">{goal.currentAmount.toLocaleString()} / {goal.targetAmount.toLocaleString()} so&apos;m</div>
+                            <h5 className="text-xs font-bold">{goal.name}</h5>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              {goal.currentAmount.toLocaleString()} / {goal.targetAmount.toLocaleString()} so'm
+                            </p>
                           </div>
                           <button onClick={() => handleDeleteGoal(goal.id)} className="text-slate-500 hover:text-rose-500">
                             <Trash2 size={14} />
                           </button>
                         </div>
-                        <div className="w-full h-2 bg-slate-700/20 rounded-full overflow-hidden">
-                          <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${percent}%` }}></div>
+
+                        <div>
+                          <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                            <span>Bajarildi</span>
+                            <span className="font-bold text-teal-400">{percent}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                            <div className="h-full bg-teal-500 transition-all duration-500" style={{ width: `${percent}%` }}></div>
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center pt-1">
-                          <span className="text-[10px] font-bold text-indigo-400">{percent}% bajarildi</span>
-                          {addSavingId === goal.id ? (
-                            <div className="flex items-center gap-1">
-                              <input 
-                                type="number" 
-                                placeholder="Summa" 
-                                value={addSavingAmount}
-                                onChange={(e) => setAddSavingAmount(e.target.value)}
-                                className={`w-20 p-1 text-[10px] rounded border outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                              />
-                              <button onClick={() => handleAddMoneyToGoal(goal.id)} className="bg-emerald-600 text-white text-[10px] px-2 py-1 rounded">
-                                +
-                              </button>
-                            </div>
-                          ) : (
-                            <button onClick={() => setAddSavingId(goal.id)} className="text-[10px] font-bold text-emerald-400 hover:underline">
-                              + Pul qo&apos;shish
+
+                        {addSavingId === goal.id ? (
+                          <div className="flex gap-2 pt-2">
+                            <input 
+                              type="number" 
+                              placeholder="Summa" 
+                              value={addSavingAmount}
+                              onChange={(e) => setAddSavingAmount(e.target.value)}
+                              className={`flex-1 px-3 py-1.5 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                            />
+                            <button onClick={() => handleAddMoneyToGoal(goal.id)} className="bg-teal-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold">
+                              Saqlash
                             </button>
-                          )}
-                        </div>
+                            <button onClick={() => setAddSavingId(null)} className="bg-slate-700 text-white px-3 py-1.5 rounded-xl text-xs">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setAddSavingId(goal.id)}
+                            className="w-full py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1"
+                          >
+                            <Plus size={14} /> Pul qo'shish
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -868,76 +1587,178 @@ export default function App() {
               </div>
             )}
 
-            {/* ISHLAR BO'LIMI */}
+            {/* KO'PROQ PUL BERADIGAN ISHLAR SAHIFASI */}
             {activeTab === 'jobs' && (
-              <div className="p-5 space-y-3">
-                <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-300' : 'text-slate-800'}`}>Mavjud vakansiyalar</h4>
-                {jobs.map((job) => (
-                  <div key={job.id} className={`p-4 rounded-2xl border space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{job.title}</div>
-                        <div className="text-[10px] text-slate-400">{job.company} • {job.location}</div>
+              <div className="p-4 space-y-4">
+                <div className="space-y-3">
+                  {jobs.map(job => (
+                    <div key={job.id} className={`p-4 rounded-2xl border relative space-y-2 ${darkMode ? 'bg-slate-800/60 border-slate-700/60' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-xs font-bold text-amber-400">{job.title}</h4>
+                          <p className="text-[11px] font-medium mt-0.5">{job.company}</p>
+                        </div>
+                        {isAdminLoggedIn && (
+                          <button onClick={() => handleDeleteJob(job.id)} className="text-rose-400 hover:text-rose-300 p-1">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
-                      <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Aktiv</span>
+                      <div className="text-[10px] text-slate-400 space-y-1">
+                        <p>💰 Maosh: <span className="text-emerald-400 font-bold">{job.salary}</span></p>
+                        <p>📍 Hudud: {job.location}</p>
+                        <p>💬 Aloqa: <span className="text-blue-400 font-medium">{job.contact}</span></p>
+                      </div>
                     </div>
-                    <div className="text-xs font-extrabold text-emerald-500">{job.salary}</div>
-                    <div className="text-[10px] text-blue-400 font-medium">Aloqa: {job.contact}</div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+               
               </div>
             )}
 
-            {/* ALOQA VA CHAT BO'LIMI */}
+            {/* GPS VA OSHXONALAR SAHIFASI */}
+            {activeTab === 'gps' && (
+              <div className="p-4 space-y-4">
+                <div className={`p-4 rounded-2xl border space-y-2 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold flex items-center gap-1.5 text-rose-500">
+                      <Compass size={16} className="animate-spin" /> Joylashuvingiz
+                    </span>
+                    <button onClick={fetchNearbyPlaces} className="text-[10px] text-blue-400 font-bold hover:underline">
+                      Yangilash
+                    </button>
+                  </div>
+                  {addressName ? (
+                    <p className="text-xs font-medium text-slate-300">{addressName}</p>
+                  ) : (
+                    <p className="text-xs text-slate-500">GPS aniqlanmoqda...</p>
+                  )}
+                  {accuracy && <p className="text-[10px] text-slate-400">Aniqlik darajasi: ~{accuracy} metr</p>}
+                </div>
+
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <Search size={16} className="text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Oshxona yoki taom turini qidirish..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-transparent text-xs outline-none w-full"
+                  />
+                </div>
+
+                {gpsLoading ? (
+                  <div className="text-center py-8 text-xs text-slate-400">Oshxonalar qidirilmoqda...</div>
+                ) : gpsError ? (
+                  <div className="text-center py-8 text-xs text-rose-400">{gpsError}</div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredRestaurants.map(r => (
+                      <div key={r.id} className={`p-3 rounded-xl border flex items-center justify-between ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100'}`}>
+                        <div>
+                          <h5 className="text-xs font-bold">{r.name}</h5>
+                          <p className="text-[10px] text-slate-400 capitalize">{r.type}</p>
+                        </div>
+                        <span className="text-xs font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-full">
+                          {r.distText}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PREMIUM OBUNA SAHIFASI */}
+            {activeTab === 'premium' && (
+              <div className="p-4 space-y-4">
+                <div className="text-center space-y-2 py-4">
+                  <div className="w-16 h-16 bg-gradient-to-tr from-amber-400 to-amber-200 rounded-3xl flex items-center justify-center mx-auto shadow-xl text-slate-900">
+                    <Crown size={36} />
+                  </div>
+                  <h3 className="text-lg font-black text-amber-400">VIP Obuna Statusi</h3>
+                  <p className="text-xs text-slate-400">Eksklyuziv imkoniyatlar va cheklovsiz foydalanish</p>
+                </div>
+
+                <div className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">VIP Imkoniyatlar:</h4>
+                  <ul className="space-y-2 text-xs text-slate-300">
+                    <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-amber-400" /> Shaxsiy profilga VIP belgi</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-amber-400" /> Barcha eksklyuziv ishlarni ko'rish</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-amber-400" /> Admin bilan to'g'ridan-to'g me va tezkor aloqa</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-amber-400" /> Cheksiz jamg'arish maqsadlari</li>
+                  </ul>
+                </div>
+
+                <div className={`p-4 rounded-2xl border space-y-3 text-center ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <p className="text-xs text-slate-400">To'lov uchun karta ma'lumoti:</p>
+                  <div className="p-3 bg-slate-900 rounded-xl border border-slate-700/60 inline-block w-full">
+                    <p className="text-sm font-black text-amber-400 tracking-wider">{adminCardInfo.cardNumber}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{adminCardInfo.cardHolder}</p>
+                  </div>
+                  <p className="text-[11px] text-slate-400">To'lov qilgach, chekni admin bilan aloqa chatida yuboring!</p>
+                </div>
+              </div>
+            )}
+
+            {/* ADMIN BILAN ALOQA SAHIFASI */}
             {activeTab === 'contact' && (
-              <div className="p-5 space-y-4">
-                <form onSubmit={handleSendMessage} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/60 border-slate-700/60' : 'bg-white border-slate-100 shadow-sm'}`}>
-                  <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>Admin uchun xabar qoldiring</h4>
+              <div className="p-4 space-y-4">
+                {msgSentSuccess && (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs flex items-center gap-2">
+                    <CheckCircle2 size={16} />
+                    <span>Xabaringiz yuborildi! Admin tez orada javob beradi.</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSendMessage} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <h4 className="text-xs font-bold">Adminga xabar yuborish</h4>
                   <input 
                     type="text" 
                     placeholder="Ismingiz" 
-                    value={clientName} 
-                    onChange={(e) => setClientName(e.target.value)} 
-                    className={`w-full border p-2.5 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
                   />
                   <input 
                     type="text" 
-                    placeholder="Telefon raqamingiz (ixtiyoriy)" 
-                    value={clientPhone} 
-                    onChange={(e) => setClientPhone(e.target.value)} 
-                    className={`w-full border p-2.5 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                    placeholder="Telefon raqamingiz" 
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
                   />
                   <textarea 
-                    placeholder="Xabaringiz yoki e'lon matni..." 
-                    value={clientMsg} 
-                    onChange={(e) => setClientMsg(e.target.value)} 
                     rows={3}
-                    className={`w-full border p-2.5 rounded-xl text-xs outline-none resize-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                    placeholder="Xabar matni..." 
+                    value={clientMsg}
+                    onChange={(e) => setClientMsg(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
                   />
-                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition">
-                    Xabar Yuborish
+                  <button type="submit" className="w-full bg-blue-600 text-white py-2.5 rounded-xl text-xs font-bold shadow-md hover:bg-blue-700 transition flex items-center justify-center gap-1.5">
+                    <Send size={15} /> Yuborish
                   </button>
-                  {msgSentSuccess && (
-                    <div className="text-[10px] text-emerald-400 font-bold text-center">Xabar admin paneliga yuborildi!</div>
-                  )}
                 </form>
 
                 <div className="space-y-3">
-                  <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-300' : 'text-slate-800'}`}>Sizning xabarlaringiz va javoblar</h4>
-                  {userMessages.map((msg) => (
-                    <div key={msg.id} className={`p-4 rounded-2xl border space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                  <h4 className="text-xs font-bold px-1">Sizning xabarlaringiz va javoblar</h4>
+                  {userMessages.map(msg => (
+                    <div key={msg.id} className={`p-4 rounded-2xl border space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-white border-slate-200'}`}>
                       <div className="flex justify-between items-start">
-                        <span className="text-xs font-bold text-blue-400">{msg.sender}</span>
-                        <span className="text-[9px] text-slate-500">{msg.date}</span>
+                        <span className="text-xs font-bold">{msg.sender}</span>
+                        <span className="text-[10px] text-slate-400">{msg.date}</span>
                       </div>
-                      <p className={`text-xs ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{msg.message}</p>
+                      <p className="text-xs text-slate-300">{msg.message}</p>
                       
-                      {msg.replies.length > 0 && (
-                        <div className="mt-2 pl-3 border-l-2 border-indigo-500 space-y-2">
-                          {msg.replies.map((r) => (
-                            <div key={r.id} className="bg-indigo-500/10 p-2 rounded-xl">
-                              <div className="text-[9px] font-bold text-indigo-400">Admin javobi:</div>
-                              <p className={`text-[11px] ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{r.text}</p>
+                      {msg.replies && msg.replies.length > 0 && (
+                        <div className="pt-2 border-t border-slate-700/50 space-y-2">
+                          {msg.replies.map(reply => (
+                            <div key={reply.id} className="bg-blue-600/10 border border-blue-500/20 p-2.5 rounded-xl text-xs text-blue-300 space-y-0.5">
+                              <div className="flex justify-between font-bold text-[10px] text-blue-400">
+                                <span>Admin javobi:</span>
+                                <span>{reply.date}</span>
+                              </div>
+                              <p>{reply.text}</p>
                             </div>
                           ))}
                         </div>
@@ -948,245 +1769,342 @@ export default function App() {
               </div>
             )}
 
-            {/* ADMIN PANEL */}
+            {/* ADMIN PANEL SAHIFASI */}
             {activeTab === 'admin' && (
-              <div className="p-5 space-y-4">
+              <div className="p-4 space-y-4">
                 {!isAdminLoggedIn ? (
-                  <form onSubmit={handleAdminLogin} className={`p-5 rounded-3xl border shadow-xl space-y-4 ${darkMode ? 'bg-slate-800/80 border-slate-700/60' : 'bg-white border-slate-200'}`}>
-                    <div className="text-center space-y-1">
-                      <ShieldCheck size={32} className="mx-auto text-amber-500" />
-                      <h3 className={`text-base font-extrabold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Admin Kirish</h3>
+                  <form onSubmit={handleAdminLogin} className={`p-5 rounded-3xl border shadow-xl space-y-4 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className="text-center space-y-1 mb-2">
+                      <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mx-auto border border-amber-500/20">
+                        <ShieldCheck size={24} />
+                      </div>
+                      <h3 className="text-sm font-bold">Admin Paneli Kirish</h3>
                     </div>
 
                     {loginError && (
-                      <div className="p-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-[11px]">
-                        {loginError}
+                      <div className="p-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-xs flex items-center gap-2">
+                        <AlertTriangle size={15} />
+                        <span>{loginError}</span>
                       </div>
                     )}
 
                     <div>
-                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">Login</label>
+                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">Admin login</label>
                       <input 
                         type="text" 
-                        placeholder="Admin login" 
-                        value={adminUsername} 
-                        onChange={(e) => setAdminUsername(e.target.value)} 
-                        className={`w-full border p-2.5 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                        placeholder="Login" 
+                        value={adminUsername}
+                        onChange={(e) => setAdminUsername(e.target.value)}
+                        className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">Parol</label>
-                      <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                        <input 
-                          type={showAdminPassword ? "text" : "password"} 
-                          placeholder="Admin parol" 
-                          value={adminPassword} 
-                          onChange={(e) => setAdminPassword(e.target.value)} 
-                          className="bg-transparent text-xs outline-none w-full"
-                        />
-                        <button type="button" onClick={() => setShowAdminPassword(!showAdminPassword)}>
-                          {showAdminPassword ? <EyeOff size={14} className="text-slate-400" /> : <Eye size={14} className="text-slate-400" />}
-                        </button>
-                      </div>
+                      <label className="text-[10px] text-slate-400 font-medium mb-1 block">Admin parol</label>
+                      <input 
+                        type="password" 
+                        placeholder="Parol" 
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                      />
                     </div>
 
-                    <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-3 rounded-xl shadow-lg transition">
-                      Admin Panelga Kirish
+                    <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl text-xs shadow-lg transition active:scale-95">
+                      Admin bo'lib kirish
                     </button>
                   </form>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-amber-400">Admin Boshqaruvi</span>
-                      <button onClick={() => setIsAdminLoggedIn(false)} className="text-[10px] text-rose-400 hover:underline">
-                        Chiqish
-                      </button>
-                    </div>
-
-                    <div className="flex border-b border-slate-700">
+                    <div className="flex gap-2 border-b border-slate-700/60 pb-2">
                       <button 
-                        onClick={() => setAdminActiveTab('jobs')} 
-                        className={`flex-1 py-2 text-center text-xs font-bold border-b-2 ${adminActiveTab === 'jobs' ? 'border-amber-500 text-amber-400' : 'border-transparent text-slate-400'}`}
+                        onClick={() => setAdminActiveTab('users')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${adminActiveTab === 'users' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}
                       >
-                        Ishlar Boshqaruvi
+                        Foydalanuvchilar
                       </button>
                       <button 
-                        onClick={() => setAdminActiveTab('messages')} 
-                        className={`flex-1 py-2 text-center text-xs font-bold border-b-2 ${adminActiveTab === 'messages' ? 'border-amber-500 text-amber-400' : 'border-transparent text-slate-400'}`}
+                        onClick={() => setAdminActiveTab('messages')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${adminActiveTab === 'messages' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}
                       >
-                        Mijoz Xabarlari
+                        Xabarlar ({userMessages.length})
+                      </button>
+                      <button 
+                        onClick={() => setAdminActiveTab('card')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${adminActiveTab === 'card' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}
+                      >
+                        Karta Sozlamasi
                       </button>
                     </div>
-
-                    {adminActiveTab === 'jobs' && (
-                      <div className="space-y-4">
-                        <form onSubmit={handleAddJob} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/60 border-slate-700/60' : 'bg-white border-slate-100 shadow-sm'}`}>
-                          <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>Yangi vakansiya qo&apos;shish</h4>
-                          <input 
-                            type="text" 
-                            placeholder="Ish nomi (masalan: Python Backend)" 
-                            value={jobForm.title} 
-                            onChange={(e) => setJobForm({...jobForm, title: e.target.value})} 
-                            className={`w-full border p-2 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                          />
-                          <input 
-                            type="text" 
-                            placeholder="Kompaniya nomi" 
-                            value={jobForm.company} 
-                            onChange={(e) => setJobForm({...jobForm, company: e.target.value})} 
-                            className={`w-full border p-2 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                          />
-                          <input 
-                            type="text" 
-                            placeholder="Oylik maosh (masalan: 10 000 000 so'm)" 
-                            value={jobForm.salary} 
-                            onChange={(e) => setJobForm({...jobForm, salary: e.target.value})} 
-                            className={`w-full border p-2 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                          />
-                          <input 
-                            type="text" 
-                            placeholder="Joylashuv (masalan: Toshkent)" 
-                            value={jobForm.location} 
-                            onChange={(e) => setJobForm({...jobForm, location: e.target.value})} 
-                            className={`w-full border p-2 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                          />
-                          <input 
-                            type="text" 
-                            placeholder="Aloqa (masalan: @hr_contact)" 
-                            value={jobForm.contact} 
-                            onChange={(e) => setJobForm({...jobForm, contact: e.target.value})} 
-                            className={`w-full border p-2 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                          />
-                          <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 rounded-xl shadow-md transition">
-                            Vakansiyani Chop Etish
-                          </button>
-                        </form>
-
-                        <div className="space-y-2">
-                          <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-300' : 'text-slate-800'}`}>Mavjud vakansiyalarni boshqarish</h4>
-                          {jobs.map((j) => (
-                            <div key={j.id} className={`p-3 rounded-2xl border flex items-center justify-between ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-                              <div>
-                                <div className={`text-xs font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{j.title}</div>
-                                <div className="text-[10px] text-slate-400">{j.company}</div>
+ {isAdminLoggedIn && (
+                  <form onSubmit={handleAddJob} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <h4 className="text-xs font-bold text-amber-400">Yangi ish e'loni qo'shish (Admin)</h4>
+                    <input 
+                      type="text" 
+                      placeholder="Lavozim nomi" 
+                      value={jobForm.title}
+                      onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Kompaniya nomi" 
+                      value={jobForm.company}
+                      onChange={(e) => setJobForm({ ...jobForm, company: e.target.value })}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Maosh (masalan: 8 000 000 so'm)" 
+                      value={jobForm.salary}
+                      onChange={(e) => setJobForm({ ...jobForm, salary: e.target.value })}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Joylashuv" 
+                      value={jobForm.location}
+                      onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Aloqa uchun username/tel" 
+                      value={jobForm.contact}
+                      onChange={(e) => setJobForm({ ...jobForm, contact: e.target.value })}
+                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                    />
+                    <button type="submit" className="w-full bg-amber-600 text-white py-2.5 rounded-xl text-xs font-bold shadow-md hover:bg-amber-700 transition">
+                      E'lonni joylash
+                    </button>
+                  </form>
+                )}
+                    {adminActiveTab === 'users' && (
+                      <div className="space-y-2">
+                        {allUsers.map(u => (
+                          <div key={u.id} className={`p-3 rounded-xl border flex items-center justify-between ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100'}`}>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <h5 className="text-xs font-bold">{u.name}</h5>
+                                {u.isVip && <Crown size={12} className="text-amber-400 fill-amber-400" />}
                               </div>
-                              <button onClick={() => handleDeleteJob(j.id)} className="text-rose-500 hover:text-rose-700">
-                                <Trash2 size={16} />
-                              </button>
+                              <p className="text-[10px] text-slate-400">{u.phone}</p>
                             </div>
-                          ))}
-                        </div>
+                            <button 
+                              onClick={() => toggleUserVipStatus(u.id)}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${
+                                u.isVip ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              }`}
+                            >
+                              {u.isVip ? "VIP-ni olish" : "VIP berish"}
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
 
                     {adminActiveTab === 'messages' && (
                       <div className="space-y-3">
-                        <h4 className={`text-xs font-bold ${darkMode ? 'text-slate-300' : 'text-slate-800'}`}>Mijozlardan kelgan xabarlar</h4>
-                        {userMessages.map((m) => (
-                          <div key={m.id} className={`p-4 rounded-2xl border space-y-2 ${darkMode ? 'bg-slate-800/40 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                        {userMessages.map(msg => (
+                          <div key={msg.id} className={`p-4 rounded-2xl border space-y-2 ${darkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
                             <div className="flex justify-between items-start">
                               <div>
-                                <span className="text-xs font-bold text-amber-400">{m.sender}</span>
-                                <span className="text-[10px] text-slate-400 block">{m.phone}</span>
+                                <h5 className="text-xs font-bold">{msg.sender} ({msg.phone})</h5>
+                                <span className="text-[10px] text-slate-400">{msg.date}</span>
                               </div>
-                              <button onClick={() => handleDeleteMessage(m.id)} className="text-slate-500 hover:text-rose-500">
+                              <button onClick={() => handleDeleteMessage(msg.id)} className="text-rose-400 hover:text-rose-300">
                                 <Trash2 size={14} />
                               </button>
                             </div>
-                            <p className={`text-xs ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{m.message}</p>
-                            
-                            {m.replies.length > 0 && (
-                              <div className="mt-2 pl-3 border-l-2 border-amber-500 space-y-1">
-                                {m.replies.map((r) => (
-                                  <p key={r.id} className={`text-[10px] ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>Yuborilgan: {r.text}</p>
-                                ))}
-                              </div>
-                            )}
+                            <p className="text-xs text-slate-300">{msg.message}</p>
 
-                            {replyingMsgId === m.id ? (
-                              <div className="mt-2 space-y-2">
+                            {replyingMsgId === msg.id ? (
+                              <div className="pt-2 space-y-2">
                                 <textarea 
-                                  placeholder="Javobingizni yozing..." 
+                                  rows={2}
+                                  placeholder="Javob matni..." 
                                   value={adminReplyText}
                                   onChange={(e) => setAdminReplyText(e.target.value)}
-                                  className={`w-full border p-2 rounded-xl text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                                  className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
                                 />
                                 <div className="flex gap-2">
-                                  <button onClick={() => handleSendAdminReply(m.id)} className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg">
-                                    Javobni Yuborish
+                                  <button onClick={() => handleSendAdminReply(msg.id)} className="bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs">
+                                    Javob yuborish
                                   </button>
-                                  <button onClick={() => setReplyingMsgId(null)} className="text-slate-400 text-[10px] px-2 py-1.5">
+                                  <button onClick={() => setReplyingMsgId(null)} className="bg-slate-700 text-white px-3 py-1.5 rounded-xl text-xs">
                                     Bekor qilish
                                   </button>
                                 </div>
                               </div>
                             ) : (
-                              <button onClick={() => setReplyingMsgId(m.id)} className="text-[10px] font-bold text-amber-400 hover:underline block pt-1">
-                                Javob berish
+                              <button onClick={() => setReplyingMsgId(msg.id)} className="text-[11px] text-amber-400 font-bold hover:underline">
+                                Javob qaytarish
                               </button>
                             )}
                           </div>
                         ))}
                       </div>
                     )}
+
+                    {adminActiveTab === 'card' && (
+                      <form onSubmit={handleSaveAdminCard} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <h4 className="text-xs font-bold text-amber-400">Admin karta sozlamalari</h4>
+                        <div>
+                          <label className="text-[10px] text-slate-400 font-medium mb-1 block">Karta raqami</label>
+                          <input 
+                            type="text" 
+                            value={editCardNumber}
+                            onChange={(e) => setEditCardNumber(e.target.value)}
+                            className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-400 font-medium mb-1 block">Karta egasi</label>
+                          <input 
+                            type="text" 
+                            value={editCardHolder}
+                            onChange={(e) => setEditCardHolder(e.target.value)}
+                            className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                          />
+                        </div>
+                        <button type="submit" className="w-full bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs shadow-md">
+                          Saqlash
+                        </button>
+                      </form>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
-            {/* SHAXSIY PROFIL */}
+            {/* SHAXSIY PROFIL SAHIFASI */}
             {activeTab === 'profile' && (
-              <div className="p-5 space-y-4">
-                <div className={`p-5 rounded-3xl border text-center space-y-3 ${darkMode ? 'bg-slate-800/60 border-slate-700/60' : 'bg-white border-slate-100 shadow-sm'}`}>
-                  <img src={user.avatar} className="w-20 h-20 rounded-full mx-auto border-4 border-blue-500/30 object-cover" alt="profile" />
-                  <div>
-                    <h3 className={`text-base font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{user.name}</h3>
-                    <p className="text-xs text-slate-400">{user.phone}</p>
-                    <p className="text-xs text-slate-400">{user.email}</p>
+              <div className="p-4 space-y-4">
+                <div className={`p-5 rounded-2xl border space-y-4 text-center ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className="relative w-20 h-20 mx-auto">
+                    <img src={isEditingProfile ? editUserData.avatar : user.avatar} className="w-20 h-20 rounded-full object-cover border-2 border-blue-500" alt="avatar" />
+                    {isEditingProfile && (
+                      <button 
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute bottom-0 right-0 p-1.5 bg-blue-600 text-white rounded-full shadow-lg"
+                      >
+                        <Camera size={14} />
+                      </button>
+                    )}
                   </div>
+
+                  {!isEditingProfile ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <h3 className="text-sm font-bold">{user.name}</h3>
+                        {user.isVip && <Crown size={14} className="text-amber-400 fill-amber-400" />}
+                      </div>
+                      <p className="text-xs text-slate-400">{user.phone}</p>
+                      <p className="text-xs text-slate-400">{user.email}</p>
+                      <button 
+                        onClick={() => { setEditUserData({ ...user }); setIsEditingProfile(true); }}
+                        className="mt-3 px-4 py-2 bg-blue-600/10 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-600/20 transition flex items-center gap-1.5 mx-auto"
+                      >
+                        <Edit size={14} /> Profilni tahrirlash
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSaveProfile} className="space-y-3 text-left">
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-medium mb-1 block">Ismingiz</label>
+                        <input 
+                          type="text" 
+                          value={editUserData.name}
+                          onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
+                          className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-medium mb-1 block">Telefon</label>
+                        <input 
+                          type="text" 
+                          value={editUserData.phone}
+                          onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })}
+                          className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-medium mb-1 block">Email</label>
+                        <input 
+                          type="text" 
+                          value={editUserData.email}
+                          onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
+                          className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                        />
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded-xl text-xs font-bold shadow-md">
+                          Saqlash
+                        </button>
+                        <button type="button" onClick={() => setIsEditingProfile(false)} className="px-4 bg-slate-700 text-white py-2 rounded-xl text-xs font-bold">
+                          Bekor qilish
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
 
                 <button 
-                  onClick={handleUserLogout} 
-                  className="w-full bg-rose-600/10 hover:bg-rose-600/20 text-rose-500 border border-rose-500/20 text-xs font-bold py-3 rounded-2xl transition"
+                  onClick={handleUserLogout}
+                  className="w-full py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2"
                 >
-                  Tizimdan Chiqish
+                  <LogOut size={16} /> Hisobdan chiqish
                 </button>
               </div>
             )}
 
-            {/* BOTTOM NAVIGATION BAR */}
-            <div className={`fixed bottom-0 max-w-[410px] w-full border-t flex justify-around py-2.5 z-40 backdrop-blur-md ${
-              darkMode ? 'bg-slate-900/95 border-slate-800/80 text-slate-400' : 'bg-white/95 border-slate-200 text-slate-500'
-            }`}>
-              {[
-                { tab: 'home', label: 'Bosh sahifa', icon: Home },
-                { tab: 'expenses', label: 'Xarajatlar', icon: Receipt },
-                { tab: 'gps', label: 'GPS', icon: Compass },
-                { tab: 'jobs', label: 'Ishlar', icon: Briefcase },
-                { tab: 'profile', label: 'Profil', icon: User }
-              ].map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.tab;
-                return (
-                  <button 
-                    key={item.tab} 
-                    onClick={() => setActiveTab(item.tab)}
-                    className={`flex flex-col items-center gap-1 transition ${
-                      isActive ? 'text-blue-500 scale-105' : 'hover:text-slate-300'
-                    }`}
-                  >
-                    <Icon size={20} />
-                    <span className="text-[9px] font-medium">{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
+            {/* PASTI NAVIGATSIYA BAR */}
+            <div className={`fixed bottom-0 max-w-[410px] w-full border-t flex justify-around py-3 z-40 backdrop-blur-md ${darkMode ? 'bg-slate-900/95 border-slate-800 text-slate-400' : 'bg-white/95 border-slate-200 text-slate-500'}`}>
+              <button 
+                onClick={() => setActiveTab('home')}
+                className={`flex flex-col items-center gap-1 ${activeTab === 'home' ? 'text-blue-500 font-bold' : ''}`}
+              >
+                <Home size={18} />
+                <span className="text-[9px]">Bosh sahifa</span>
+              </button>
 
+              <button 
+                onClick={() => setActiveTab('transfer')}
+                className={`flex flex-col items-center gap-1 ${activeTab === 'transfer' ? 'text-blue-500 font-bold' : ''}`}
+              >
+                <ArrowRightLeft size={18} />
+                <span className="text-[9px]">O'tkazma</span>
+              </button>
+
+              <button 
+                onClick={() => setActiveTab('utilities')}
+                className={`flex flex-col items-center gap-1 ${activeTab === 'utilities' ? 'text-blue-500 font-bold' : ''}`}
+              >
+                <Zap size={18} />
+                <span className="text-[9px]">Kommunal</span>
+              </button>
+
+              <button 
+                onClick={() => setActiveTab('cards')}
+                className={`flex flex-col items-center gap-1 ${activeTab === 'cards' ? 'text-blue-500 font-bold' : ''}`}
+              >
+                <CreditCard size={18} />
+                <span className="text-[9px]">Kartalar</span>
+              </button>
+
+              <button 
+                onClick={() => setActiveTab('profile')}
+                className={`flex flex-col items-center gap-1 ${activeTab === 'profile' ? 'text-blue-500 font-bold' : ''}`}
+              >
+                <User size={18} />
+                <span className="text-[9px]">Profil</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+    
   );
-}
+} 
