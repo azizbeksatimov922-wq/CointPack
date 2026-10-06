@@ -228,30 +228,15 @@ export default function App() {
   // KARTADAN KARTAGA PUL O'TKAZMA FUNKSIYASI
   const handleCardTransfer = (e) => {
     e.preventDefault();
-
-    const amount = Number(String(transferAmount).replace(/\s/g, ''));
-    const cleanToCard = String(toCardNumber).replace(/\D/g, '');
-
-    // 1. Ma'lumotlarni tekshirish
-    if (!fromCardId || cleanToCard.length !== 16 || !Number.isFinite(amount) || amount <= 0) {
-      alert("Karta raqami 16 xonali bo'lishi va summa to'g'ri kiritilishi kerak!");
+    const amount = parseInt(transferAmount);
+    if (!fromCardId || !toCardNumber || !amount || amount <= 0) {
+      alert("Iltimos, barcha maydonlarni to'g'ri to'ldiring!");
       return;
     }
 
-    const sourceCard = userCards.find(c => c.id === Number(fromCardId));
+    const sourceCard = userCards.find(c => c.id === parseInt(fromCardId));
     if (!sourceCard) {
       alert("Tanlangan karta topilmadi!");
-      return;
-    }
-
-    // O'z kartalarimizdan biriga o'tkazayotgan bo'lsak, shu kartaning balansini oshiramiz.
-    const receiverCard = userCards.find(
-      c => String(c.cardNumber).replace(/\D/g, '') === cleanToCard
-    );
-
-    // Bir xil kartaga pul yuborishni taqiqlaymiz.
-    if (receiverCard && receiverCard.id === sourceCard.id) {
-      alert("Pulni o'sha kartaning o'ziga o'tkazib bo'lmaydi!");
       return;
     }
 
@@ -260,54 +245,27 @@ export default function App() {
       return;
     }
 
-    // 2. Yuboruvchi kartadan ayiramiz va agar qabul qiluvchi bizning kartamiz bo'lsa,
-    // shu kartaga qo'shamiz.
-    if (receiverCard) {
-      setUserCards(prev => prev.map(card => {
-        if (card.id === sourceCard.id) {
-          return { ...card, balance: card.balance - amount };
-        }
-        if (card.id === receiverCard.id) {
-          return { ...card, balance: card.balance + amount };
-        }
-        return card;
-      }));
+    setUserCards(prev => prev.map(c => {
+      if (c.id === sourceCard.id) {
+        return { ...c, balance: c.balance - amount };
+      }
+      return c;
+    }));
 
-      // Bir foydalanuvchining o'z kartalari orasidagi o'tkazmada umumiy balans o'zgarmaydi.
-      setTotalBalance(prev => prev);
-    } else {
-      // 3. Tashqi karta bo'lsa, uning demo balansini localStorage'da saqlaymiz.
-      // Haqiqiy bank kartasiga pul yuborish uchun Django/backend + bank API kerak bo'ladi.
-      const savedBalances = JSON.parse(localStorage.getItem('externalCardBalances') || '{}');
-      savedBalances[cleanToCard] = (Number(savedBalances[cleanToCard]) || 0) + amount;
-      localStorage.setItem('externalCardBalances', JSON.stringify(savedBalances));
+    setTotalBalance(prev => prev - amount);
 
-      setUserCards(prev => prev.map(card =>
-        card.id === sourceCard.id
-          ? { ...card, balance: card.balance - amount }
-          : card
-      ));
-
-      setTotalBalance(prev => prev - amount);
-    }
-
-    // 4. Transaction history'ga yozamiz.
-    const maskedCard = `**** **** **** ${cleanToCard.slice(-4)}`;
     const newTx = {
       id: Date.now(),
-      title: `Kartaga o'tkazma: ${maskedCard}`,
-      amount,
+      title: `O'tkazma: ${toCardNumber}`,
+      amount: amount,
       category: "Pul o'tkazmasi",
       date: 'Hozir'
     };
     setTransactions(prev => [newTx, ...prev]);
 
-    // 5. Formani tozalaymiz.
     setToCardNumber('');
     setTransferAmount('');
-    setFromCardId('');
-
-    alert(`${amount.toLocaleString()} so'm muvaffaqiyatli o'tkazildi!`);
+    alert("Pul muvaffaqiyatli o'tkazildi!");
   };
 
   // KOMMUNAL TO'LOV FUNKSIYASI (GAZ, SVET, SUV, TOK)
@@ -1836,49 +1794,7 @@ export default function App() {
                         Karta Sozlamasi
                       </button>
                     </div>
- {isAdminLoggedIn && (
-                  <form onSubmit={handleAddJob} className={`p-4 rounded-2xl border space-y-3 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                    <h4 className="text-xs font-bold text-amber-400">Yangi ish e'loni qo'shish (Admin)</h4>
-                    <input 
-                      type="text" 
-                      placeholder="Lavozim nomi" 
-                      value={jobForm.title}
-                      onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="Kompaniya nomi" 
-                      value={jobForm.company}
-                      onChange={(e) => setJobForm({ ...jobForm, company: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="Maosh (masalan: 8 000 000 so'm)" 
-                      value={jobForm.salary}
-                      onChange={(e) => setJobForm({ ...jobForm, salary: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="Joylashuv" 
-                      value={jobForm.location}
-                      onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="Aloqa uchun username/tel" 
-                      value={jobForm.contact}
-                      onChange={(e) => setJobForm({ ...jobForm, contact: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-xl border text-xs outline-none ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
-                    />
-                    <button type="submit" className="w-full bg-amber-600 text-white py-2.5 rounded-xl text-xs font-bold shadow-md hover:bg-amber-700 transition">
-                      E'lonni joylash
-                    </button>
-                  </form>
-                )}
+
                     {adminActiveTab === 'users' && (
                       <div className="space-y-2">
                         {allUsers.map(u => (
