@@ -1,7 +1,7 @@
-
 fastapi
 uvicorn[standard]
 django
 djangorestframework
 djangorestframework-simplejwt
-django-cors-headersaiogram
+django-cors-headers
+aiogram
