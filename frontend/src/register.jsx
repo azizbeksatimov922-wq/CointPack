@@ -9,16 +9,17 @@ import {
   ChevronLeft 
 } from 'lucide-react';
 
-const RegisterForm = () => {
+const RegisterForm = ({ onSubmit, onLogin, error }) => {
   const [formData, setFormData] = useState({
-    fullName: 'Munisa Abdulhaqova',
-    phone: '+998 90 123 45 67',
-    email: 'munisa@example.com',
-    password: '••••••',
+    fullName: '',
+    phone: '',
+    email: '',
+    password: '',
     agreeTerms: true,
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -28,9 +29,20 @@ const RegisterForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form data:', formData);
+    if (!formData.agreeTerms) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        name: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,6 +63,7 @@ const RegisterForm = () => {
           Yangi hisob yarating
         </h2>
 
+        {error && <p role="alert" className="mb-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         {/* Форма */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
           
@@ -147,9 +160,10 @@ const RegisterForm = () => {
           {/* Кнопка регистрации */}
           <button
             type="submit"
-            className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3.5 rounded-2xl shadow-md shadow-blue-200 transition active:scale-[0.98]"
+            disabled={isSubmitting || !formData.agreeTerms}
+            className="w-full mt-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3.5 rounded-2xl shadow-md shadow-blue-200 transition active:scale-[0.98]"
           >
-            Ro'yxatdan o'tish
+            {isSubmitting ? 'Kutilmoqda...' : "Ro'yxatdan o'tish"}
           </button>
         </form>
 
@@ -194,7 +208,7 @@ const RegisterForm = () => {
         {/* Нижний текст переключения на Login */}
         <div className="mt-8 text-center text-xs text-gray-400">
           Hisobingiz bormi?{' '}
-          <a href="#login" className="text-blue-600 font-semibold hover:underline">
+          <a href="#login" onClick={(event) => { event.preventDefault(); onLogin() }} className="text-blue-600 font-semibold hover:underline">
             Kirish
           </a>
         </div>

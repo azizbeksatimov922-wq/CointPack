@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { Phone, Lock, Eye, EyeOff } from 'lucide-react';
 
-const LoginForm = () => {
+const LoginForm = ({ onSubmit, onRegister, error }) => {
   const [formData, setFormData] = useState({
-    loginInput: '+998 90 123 45 67',
-    password: '••••••••',
+    loginInput: '',
+    password: '',
     rememberMe: true,
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -18,9 +19,14 @@ const LoginForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login data:', formData);
+    setIsSubmitting(true);
+    try {
+      await onSubmit({ phone: formData.loginInput.trim(), password: formData.password });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -37,14 +43,15 @@ const LoginForm = () => {
           Hisobingizga kiring
         </p>
 
+        {error && <p role="alert" className="mb-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         {/* Форма */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
           
-          {/* Телефон или Email */}
+          {/* Login qiymati backenddagi username bilan mos bo'lishi kerak */}
           <div className="relative border border-gray-200 rounded-2xl p-3 flex items-center gap-3 focus-within:border-blue-500 transition">
             <Phone size={20} className="text-gray-400 shrink-0" />
             <div className="flex flex-col w-full">
-              <label className="text-[11px] text-gray-400 font-medium">Telefon raqam yoki email</label>
+              <label className="text-[11px] text-gray-400 font-medium">Telefon raqam yoki username</label>
               <input
                 type="text"
                 name="loginInput"
@@ -99,9 +106,10 @@ const LoginForm = () => {
           {/* Кнопка входа */}
           <button
             type="submit"
+            disabled={isSubmitting}
             className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3.5 rounded-2xl shadow-md shadow-blue-200 transition active:scale-[0.98]"
           >
-            Kirish
+            {isSubmitting ? 'Kutilmoqda...' : 'Kirish'}
           </button>
         </form>
 
@@ -115,7 +123,7 @@ const LoginForm = () => {
         {/* Переход на регистрацию */}
         <div className="mt-28 mb-2 text-center text-xs text-gray-400">
           Hisobingiz yo'qmi?{' '}
-          <a href="#register" className="text-blue-600 font-semibold hover:underline">
+          <a href="#register" onClick={(event) => { event.preventDefault(); onRegister() }} className="text-blue-600 font-semibold hover:underline">
             Ro'yxatdan o'tish
           </a>
         </div>
