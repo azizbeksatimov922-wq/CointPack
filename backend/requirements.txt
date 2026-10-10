@@ -4,4 +4,4 @@ uvicorn[standard]
 django
 djangorestframework
 djangorestframework-simplejwt
-django-cors-headers
+django-cors-headersaiogram
