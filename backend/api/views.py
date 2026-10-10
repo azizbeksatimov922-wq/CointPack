@@ -1,81 +1,104 @@
-import re
-from django.contrib.auth import authenticate, get_user_model
-from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from .models import BankCard, Expense, SavingsGoal, Job
-from .serializers import BankCardSerializer, ExpenseSerializer, SavingsGoalSerializer, JobSerializer
+from rest_framework.decorators import api_view
+from .models import TelegramUser, BankCard, Expense, SavingsGoal, Job, ContactMessage, MessageReply
+from .serializers import (
+    TelegramUserSerializer, BankCardSerializer, ExpenseSerializer, 
+    SavingsGoalSerializer, JobSerializer, ContactMessageSerializer, MessageReplySerializer
+)
 
+class TelegramUserViewSet(viewsets.ModelViewSet):
+    queryset = TelegramUser.objects.all()
+    serializer_class = TelegramUserSerializer
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def register(request):
-    username = request.data.get('username', '').strip()
-    password = request.data.get('password', '')
-    if not username or not password:
-        return Response({'error': 'Telefon raqam va parol majburiy'}, status=status.HTTP_400_BAD_REQUEST)
-
-    User = get_user_model()
-    if User.objects.filter(username=username).exists():
-        return Response({'error': 'Bu telefon raqam ro\'yxatdan o\'tgan'}, status=status.HTTP_400_BAD_REQUEST)
-
-    User.objects.create_user(
-        username=username,
-        password=password,
-        first_name=request.data.get('first_name', '').strip(),
-        email=request.data.get('email', '').strip(),
-    )
-    return Response({'message': 'Hisob yaratildi'}, status=status.HTTP_201_CREATED)
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def login(request):
-    user = authenticate(
-        request,
-        username=request.data.get('username', '').strip(),
-        password=request.data.get('password', ''),
-    )
-    if user is None:
-        return Response({'error': 'Telefon raqam yoki parol noto\'g\'ri'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    token, _ = Token.objects.get_or_create(user=user)
-    return Response({'token': token.key, 'name': user.first_name or user.username})
+class BankCardViewSet(viewsets.ModelViewSet):
+    queryset = BankCard.objects.all()
+    serializer_class = BankCardSerializer
 
 class ExpenseViewSet(viewsets.ModelViewSet):
+    queryset = Expense.objects.all().order_by('-id')
     serializer_class = ExpenseSerializer
 
-    def get_queryset(self):
-        return Expense.objects.filter(user=self.request.user)
-
-    @action(detail=False, methods=['post'])
-    def add_from_voice(self, request):
-        """Ovozli matndan summani ajratib oladi: '10 mingga fanta oldim' -> 10000 so'm xarajat"""
-        voice_text = request.data.get('text', '')
-        
-        numbers = re.findall(r'\d+', voice_text.replace(' ', ''))
-        amount = int(numbers[0]) if numbers else 0
-
-        if 'ming' in voice_text.lower() and amount < 1000:
-            amount *= 1000
-
-        if amount > 0:
-            expense = Expense.objects.create(
-                user=request.user,
-                category='Oziq-ovqat' if any(word in voice_text.lower() for word in ['fanta', 'cola', 'non', 'osh', 'bozor']) else 'Boshqa',
-                amount=amount,
-                note=voice_text,
-                is_voice=True
-            )
-            return Response({'status': 'Xarajat qoʻshildi', 'amount': amount, 'note': voice_text}, status=status.HTTP_201_CREATED)
-        
-        return Response({'error': 'Summa aniqlanmadi'}, status=status.HTTP_400_BAD_REQUEST)
-
-class SavingsViewSet(viewsets.ModelViewSet):
+class SavingsGoalViewSet(viewsets.ModelViewSet):
+    queryset = SavingsGoal.objects.all()
     serializer_class = SavingsGoalSerializer
 
-    def get_queryset(self):
-        return SavingsGoal.objects.filter(user=self.request.user)
+class JobViewSet(viewsets.ModelViewSet):
+    queryset = Job.objects.all().order_by('-id')
+    serializer_class = JobSerializer
+
+class ContactMessageViewSet(viewsets.ModelViewSet):
+    queryset = ContactMessage.objects.all().order_by('-id')
+    serializer_class = ContactMessageSerializer
+@api_view(["POST"])
+def register(request):
+    username = request.data.get("username", "").strip()
+    password = request.data.get("password", "")
+
+    if not username or not password:
+        return Response(
+            {"error": "Username va password kiritilishi shart"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if User.objects.filter(username=username).exists():
+        return Response(
+            {"error": "Bu username band"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if len(password) < 8:
+        return Response(
+            {"error": "Parol kamida 8 ta belgidan iborat bo‘lsin"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user = User.objects.create_user(
+        username=username,
+        password=password,
+    )
+
+    token, _ = Token.objects.get_or_create(user=user)
+
+    return Response(
+        {
+            "message": "Ro‘yxatdan o‘tish muvaffaqiyatli",
+            "username": user.username,
+            "token": token.key,
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["POST"])
+def login(request):
+    username = request.data.get("username", "").strip()
+    password = request.data.get("password", "")
+
+    user = authenticate(username=username, password=password)
+
+    if user is None:
+        return Response(
+            {"error": "Username yoki parol noto‘g‘ri"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    token, _ = Token.objects.get_or_create(user=user)
+
+    return Response(
+        {
+            "message": "Tizimga muvaffaqiyatli kirdingiz",
+            "username": user.username,
+            "token": token.key,
+        },
+        status=status.HTTP_200_OK,
+    )
+@api_view(['POST'])
+def add_reply(request, msg_id):
+    try:
+        msg = ContactMessage.objects.get(id=msg_id)
+        reply_text = request.data.get('text')
+        reply = MessageReply.objects.create(message=msg, text=reply_text)
+        return Response({'status': 'success', 'reply': MessageReplySerializer(reply).data})
+    except ContactMessage.DoesNotExist:
+        return Response({'status': 'error', 'message': 'Message not found'}, status=404)
